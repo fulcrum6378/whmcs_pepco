@@ -59,8 +59,7 @@ if ($order_id == substr($InvoiceNumber, 0, -2)) {
 }
 display_error(isset($error_code) ? $error_code : null, $TransactionReferenceID, $order_id, $get_amount, isset($message) ? $message : '');
 
-function PepCheckTransactionResult($TransactionReferenceID, $InvoiceNumber = '', $InvoiceDate = '', $TerminalCode = '', $MerchantCode = '')
-{
+function PepCheckTransactionResult($TransactionReferenceID, $InvoiceNumber = '', $InvoiceDate = '', $TerminalCode = '', $MerchantCode = '') {
     $data = array(
         'InvoiceNumber' => $InvoiceNumber,
         'InvoiceDate' => $InvoiceDate,
@@ -82,8 +81,7 @@ function PepCheckTransactionResult($TransactionReferenceID, $InvoiceNumber = '',
     return $result;
 }
 
-function PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $MerchantCode, $Amount)
-{
+function PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $MerchantCode, $Amount) {
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
     $processor = new RSAProcessor(dirname(__FILE__) . '/includes/certificate.xml', RSAKeyType::XMLFile);
     $data = array(
@@ -115,8 +113,7 @@ function PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $Merchant
     return $result;
 }
 
-function PepReversalRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $MerchantCode)
-{
+function PepReversalRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $MerchantCode) {
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
     $processor = new RSAProcessor(dirname(__FILE__) . '/includes/certificate.xml', RSAKeyType::XMLFile);
     $data = array(
@@ -147,8 +144,7 @@ function PepReversalRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $Mercha
     return $result;
 }
 
-function display_error($pay_status = '', $tran_id = '', $order_id = '', $amount = '', $message = '')
-{
+function display_error($pay_status = '', $tran_id = '', $order_id = '', $amount = '', $message = '') {
     global $GATEWAY, $CONFIG;
     if ($pay_status == 'retry') {
         $page_title = 'خطای موقت در پرداخت';
@@ -191,7 +187,7 @@ function display_error($pay_status = '', $tran_id = '', $order_id = '', $amount 
     }
     echo '
 	<!DOCTYPE html> 
-	<html xmlns="http://www.w3.org/1999/xhtml" lang="fa">
+	<html lang="fa">
 	<head>
 	<title>' . $page_title . '</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">

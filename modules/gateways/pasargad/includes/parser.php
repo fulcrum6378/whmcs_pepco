@@ -1,7 +1,6 @@
 <?php
 /* ------------------------------------- XML PARSE ------------------------------------- */
-function makeXMLTree($data)
-{
+function makeXMLTree($data) {
     $ret = array();
     $parser = xml_parser_create();
     xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
@@ -31,8 +30,7 @@ function makeXMLTree($data)
 
 
 /* ------------------------------------- CURL POST TO HTTPS --------------------------------- */
-function post2https($fields_arr, $url)
-{
+function post2https($fields_arr, $url) {
 
     //url-ify the data for the POST
     foreach ($fields_arr as $key => $value) {

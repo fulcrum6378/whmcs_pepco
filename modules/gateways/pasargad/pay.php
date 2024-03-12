@@ -19,13 +19,14 @@ $invoiceId = $_POST['invoiceid'];
 $email = $_POST['email'];
 
 $order_id = $invoiceId . mt_rand(10, 100);
-$CallBackUrl = $CONFIG['SystemURL'] . '/modules/gateways/pasargad/callback.php?a='.$amount.'&invoiceid=' . $invoiceId;
+$CallBackUrl = $CONFIG['SystemURL'] . '/modules/gateways/pasargad/callback.php?a=' . $amount .
+    '&invoiceid=' . $invoiceId;
 
 $Request = PepPayRequest($order_id, $TerminalID, $MerchantID, $amount, $CallBackUrl, '', $email);
 if (isset($Request) && $Request->IsSuccess) {
     redirect('https://pep.shaparak.ir/payment.aspx?n=' . $Request->Token);
 } else {
-    $message = isset($Request->Message) ? $Request->Message : 'خطای نامشخص';
+    $message = $Request->Message ?? 'خطای نامشخص';
     echo '
 	<!DOCTYPE html> 
 	<html xmlns="http://www.w3.org/1999/xhtml" lang="fa">
@@ -44,13 +45,13 @@ if (isset($Request) && $Request->IsSuccess) {
 	</html>
 	';
 }
-function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $RedirectAddress, $Mobile = '', $Email = '')
-{
+function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $RedirectAddress,
+                       $Mobile = '', $Email = '') {
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
-    $processor = new RSAProcessor(dirname(__FILE__) . '/includes/certificate.xml', RSAKeyType::XMLFile);
-    if (!function_exists('jdate')) {
+    $processor = new RSAProcessor(dirname(__FILE__) . '/includes/certificate.xml',
+        RSAKeyType::XMLFile);
+    if (!function_exists('jdate'))
         require_once(dirname(__FILE__) . '/includes/jdf.php');
-    }
     $data = array(
         'InvoiceNumber' => $InvoiceNumber,
         'InvoiceDate' => jdate('Y/m/d'),
@@ -84,8 +85,7 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
     return $result;
 }
 
-function redirect($url)
-{
+function redirect($url) {
     if ($url != '') {
         if (headers_sent()) {
             echo '<script type="text/javascript">window.location.assign("' . $url . '")</script>';
