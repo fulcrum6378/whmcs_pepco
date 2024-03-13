@@ -1,9 +1,18 @@
 <component name="ProjectDictionaryState">
   <dictionary name="fulcr">
     <words>
+      <w>clientdetails</w>
+      <w>dbconnect</w>
+      <w>gatewayfunctions</w>
+      <w>gatewaymodule</w>
+      <w>invoicefunctions</w>
       <w>invoiceid</w>
+      <w>jdate</w>
       <w>pasargad</w>
+      <w>refcode</w>
+      <w>reqreload</w>
       <w>toman</w>
+      <w>tref</w>
       <w>viewinvoice</w>
     </words>
   </dictionary>

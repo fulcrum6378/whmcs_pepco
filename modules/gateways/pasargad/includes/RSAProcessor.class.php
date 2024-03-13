@@ -1,4 +1,5 @@
 <?php
+
 require_once("rsa.class.php");
 
 class RSAProcessor {

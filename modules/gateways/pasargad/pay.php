@@ -1,9 +1,9 @@
-<?php
-if (file_exists('../../../init.php')) {
+<?php /** @noinspection PhpIncludeInspection, PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
+
+if (file_exists('../../../init.php'))
     require('../../../init.php');
-} else {
+else
     require("../../../dbconnect.php");
-}
 include("../../../includes/functions.php");
 include("../../../includes/gatewayfunctions.php");
 include("../../../includes/invoicefunctions.php");
@@ -23,33 +23,51 @@ $CallBackUrl = $CONFIG['SystemURL'] . '/modules/gateways/pasargad/callback.php?a
     '&invoiceid=' . $invoiceId;
 
 $Request = PepPayRequest($order_id, $TerminalID, $MerchantID, $amount, $CallBackUrl, '', $email);
-if (isset($Request) && $Request->IsSuccess) {
+if (isset($Request) && $Request->IsSuccess)
     redirect('https://pep.shaparak.ir/payment.aspx?n=' . $Request->Token);
-} else {
+else {
     $message = $Request->Message ?? 'خطای نامشخص';
-    echo '
-	<!DOCTYPE html> 
-	<html xmlns="http://www.w3.org/1999/xhtml" lang="fa">
-	<head>
-	<title>خطا در ارسال به بانک</title>
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-	<style>body{font-family:tahoma;text-align:center;margin-top:30px;}</style>
-	</head>
-	<body>
-		<div align="center" dir="rtl" style="font-family:tahoma;font-size:12px;border:1px dotted #c3c3c3; width:60%; margin: 50px auto 0px auto;line-height: 25px;padding-left: 12px;padding-top: 8px;">
-			<span style="color:#ff0000;"><b>خطا در ارسال به بانک</b></span><br/>
-			<p style="text-align:center;">' . $message . '</p>
-			<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceid . '">بازگشت >></a><br/><br/>
-		</div>
-	</body>
-	</html>
-	';
+    echo '<!DOCTYPE html> 
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>خطا در ارسال به بانک</title>
+<style>
+body {
+    font-family: tahoma, serif;
+    text-align: center;
+    margin-top: 30px;
+}
+main {
+    font-family: tahoma, serif;
+    font-size: 12px;
+    border: 1px dotted #c3c3c3;
+    width: 60%;
+    margin: 50px auto 0 auto;
+    line-height: 25px;
+    padding-left: 12px;
+    padding-top: 8px;
+}
+</style>
+</head>
+
+<body>
+	<main>
+		<span style="color:#ff0000;"><b>خطا در ارسال به بانک</b></span><br>
+		<p style="text-align:center;">' . $message . '</p>
+		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceid . '">بازگشت >></a>
+		<br><br>
+	</main>
+</body>
+</html>';
 }
 function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $RedirectAddress,
                        $Mobile = '', $Email = '') {
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
-    $processor = new RSAProcessor(dirname(__FILE__) . '/includes/certificate.xml',
-        RSAKeyType::XMLFile);
+    $processor = new RSAProcessor(
+        dirname(__FILE__) . '/includes/certificate.xml',
+        RSAKeyType::XMLFile
+    );
     if (!function_exists('jdate'))
         require_once(dirname(__FILE__) . '/includes/jdf.php');
     $data = array(
@@ -87,11 +105,10 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
 
 function redirect($url) {
     if ($url != '') {
-        if (headers_sent()) {
+        if (headers_sent())
             echo '<script type="text/javascript">window.location.assign("' . $url . '")</script>';
-        } else {
+        else
             header("Location: $url");
-        }
         exit();
     }
 }

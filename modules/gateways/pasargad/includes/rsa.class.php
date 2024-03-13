@@ -1,5 +1,6 @@
 <?php
-define("BCCOMP_LARGER", 1);
+
+const BCCOMP_LARGER = 1;
 
 class RSA {
     function rsa_encrypt($message, $public_key, $modulus, $keylength) {
