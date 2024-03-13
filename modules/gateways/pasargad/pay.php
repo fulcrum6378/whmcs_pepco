@@ -1,10 +1,8 @@
 <?php /** @noinspection PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
 
 include "./includes/shared.php";
-//echo implode(" - ", array_keys($GATEWAY));
 
-$terminalId = $GATEWAY['pasargad_terminal_id'];
-$merchantId = $GATEWAY['pasargad_merchant_id'];
+$terminalId = $GATEWAY['TerminalNumber'];
 $amount = intval($_POST['amount']);
 $invoiceId = $_POST['invoice_id'];
 $email = $_POST['email'];
@@ -12,7 +10,8 @@ $email = $_POST['email'];
 $orderId = $invoiceId . mt_rand(10, 100);
 $callbackUrl = $whmcs_url . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId;
 
-$request = PepPayRequest($orderId, $terminalId, $merchantId, $amount, $callbackUrl, '', $email);
+$request = PepPayRequest($orderId, $terminalId, $amount, $callbackUrl, '', $email);
+echo implode(" - ", array_keys($request));
 if (isset($request) && $request->IsSuccess)
     redirect('https://pep.shaparak.ir/payment.aspx?n=' . $request->Token);
 else {
@@ -43,8 +42,8 @@ main {
 
 <body>
 	<main>
-		<span style="color:#ff0000;"><b>خطا در ارسال به بانک</b></span><br>
-		<p style="text-align:center;">' . $message . '</p>
+		<span style="color: #FF0000;"><b>خطا در ارسال به بانک</b></span><br>
+		<p style="text-align: center;">' . $message . '</p>
 		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
 		<br><br>
 	</main>
@@ -62,17 +61,18 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
     if (!function_exists('jdate'))
         require_once(dirname(__FILE__) . '/includes/jdf.php');
 
-    $data = array(/*'InvoiceNumber' => $InvoiceNumber,
+    $data = array(
+        /*'InvoiceNumber' => $InvoiceNumber,
         'InvoiceDate' => jdate('Y/m/d'),
         'TerminalCode' => $TerminalCode,
-        'MerchantCode' => $MerchantCode,
         'Amount' => $Amount,
         'RedirectAddress' => $RedirectAddress,
         'Timestamp' => date('Y/m/d H:i:s'),
         'Action' => 1003,
         'Mobile' => $Mobile,
-        'Email' => $Email*/
-
+        'Email' => $Email,*/
+        'username' => 'test',
+        'password' => '123456"',
     );
 
     $sign_data = json_encode($data);
@@ -80,7 +80,7 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
     $sign_data = $processor->sign($sign_data);
     $sign = base64_encode($sign_data);
 
-    $curl = curl_init($PEP_BASE_URL . 'token/getToken');
+    $curl = curl_init($PEP_BASE_URL . '/token/getToken');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -97,7 +97,7 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
 function redirect($url) {
     if ($url == '') return;
     if (headers_sent())
-        echo '<script type="text/javascript">window.location.assign("' . $url . '")</script>';
+        echo '<script type="text/javascript">window.location.assign("' . $url . '");</script>';
     else
         header("Location: $url");
     exit();

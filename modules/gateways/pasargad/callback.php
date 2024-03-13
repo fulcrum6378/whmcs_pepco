@@ -2,41 +2,41 @@
 
 include "./includes/shared.php";
 
-$order_id = $_GET['invoice_id'] ?? '';
-$get_amount = $_GET['amount'] ?? '';
-$TransactionReferenceID = $_REQUEST['tref'] ?? '';
-$InvoiceNumber = $_REQUEST['iN'] ?? '';
-$InvoiceDate = $_REQUEST['iD'] ?? '';
-$TerminalID = $GATEWAY['pasargad_terminal_id'];
-$MerchantID = $GATEWAY['pasargad_merchant_id'];
+$orderId = $_GET['invoice_id'] ?? '';
+$getAmount = $_GET['amount'] ?? '';
+$transactionReferenceId = $_REQUEST['tref'] ?? '';
+$invoiceNumber = $_REQUEST['iN'] ?? '';
+$invoiceDate = $_REQUEST['iD'] ?? '';
+$terminalId = $GATEWAY['TerminalID'];
+$merchantId = $GATEWAY['MerchantID'];
 
-if ($order_id == substr($InvoiceNumber, 0, -2)) {
-    $invoiceId = checkCbInvoiceID($order_id, $GATEWAY['name']);
+if ($orderId == substr($invoiceNumber, 0, -2)) {
+    $invoiceId = checkCbInvoiceID($orderId, $GATEWAY['name']);
     if (!empty($invoiceId)) {
-        checkCbTransID($TransactionReferenceID);
+        checkCbTransID($transactionReferenceId);
 
-        if ($TransactionReferenceID != '')
-            $checkResult = PepCheckTransactionResult($TransactionReferenceID);
+        if ($transactionReferenceId != '')
+            $checkResult = PepCheckTransactionResult($transactionReferenceId);
         else
             $checkResult = PepCheckTransactionResult(null,
-                $InvoiceNumber, $InvoiceDate, $TerminalID, $MerchantID);
+                $invoiceNumber, $invoiceDate, $terminalId, $merchantId);
 
-        if (isset($checkResult) && $checkResult->IsSuccess && $checkResult->InvoiceNumber == $InvoiceNumber) {
+        if (isset($checkResult) && $checkResult->IsSuccess && $checkResult->InvoiceNumber == $invoiceNumber) {
             $amount = $checkResult->Amount;
 
-            if (strlen($get_amount) == 0 || $get_amount != $amount)
+            if (strlen($getAmount) == 0 || $getAmount != $amount)
                 $message = 'مبلغ پرداختی نادرست است،
 وجه کسر شده به صورت خودکار از سوی بانک به حساب شما بازگشت داده خواهد شد.';
             else {
-                $Request = PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalID, $MerchantID, $amount);
+                $Request = PepVerifyRequest($invoiceNumber, $invoiceDate, $terminalId, $merchantId, $amount);
                 if (isset($Request) && $Request->IsSuccess) {
-                    addInvoicePayment($invoiceId, $TransactionReferenceID, $amount, 0, $gatewayModule);
+                    addInvoicePayment($invoiceId, $transactionReferenceId, $amount, 0, $gatewayModule);
                     logTransaction($GATEWAY["name"], array(
                         'invoiceid' => $invoiceId,
                         'order_id' => $invoiceId,
                         'amount' => $amount,
-                        'tran_id' => $TransactionReferenceID,
-                        'refcode' => $TransactionReferenceID,
+                        'tran_id' => $transactionReferenceId,
+                        'refcode' => $transactionReferenceId,
                         'status' => 'paid'
                     ), "موفق");
                     Header('Location: ' . $whmcs_url . '/viewinvoice.php?id=' . $invoiceId);
@@ -49,7 +49,7 @@ if ($order_id == substr($InvoiceNumber, 0, -2)) {
         $error_code = 'order_not_exist';
 } else
     $error_code = 'order_not_for_this_person';
-display_error($error_code ?? null, $TransactionReferenceID, $order_id, $get_amount, $message ?? '');
+display_error($error_code ?? null, $transactionReferenceId, $orderId, $getAmount, $message ?? '');
 
 function PepCheckTransactionResult(
     $TransactionReferenceID, $InvoiceNumber = '', $InvoiceDate = '', $TerminalCode = '', $MerchantCode = '') {
@@ -228,7 +228,7 @@ main {
         echo $retry_mess;
     } else {
         echo '
-        <p style="text-align:right; margin-right:8px;">' . $client_mess . '</p>
+        <p style="text-align: right; margin-right:8px;">' . $client_mess . '</p>
         <a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $order_id . '">بازگشت >></a>
         <br><br>';
     }
