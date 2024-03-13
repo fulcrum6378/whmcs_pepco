@@ -1,30 +1,18 @@
-<?php /** @noinspection PhpIncludeInspection, PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
+<?php /** @noinspection PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
 
-if (file_exists('../../../init.php'))
-    require('../../../init.php');
-else
-    require("../../../dbconnect.php");
-include("../../../includes/functions.php");
-include("../../../includes/gatewayfunctions.php");
-include("../../../includes/invoicefunctions.php");
+include "./includes/shared.php";
 
-$gatewaymodule = 'pasargad';
-$GATEWAY = getGatewayVariables($gatewaymodule);
-if (!$GATEWAY['type']) die('Module Not Activated'); # checks gateway module is active before accepting callback
-$whmcs_url = $CONFIG['SystemURL'];
-
-$order_id = $_GET['invoiceid'] ?? '';
-$get_amount = $_GET['a'] ?? '';
+$order_id = $_GET['invoice_id'] ?? '';
+$get_amount = $_GET['amount'] ?? '';
 $TransactionReferenceID = $_REQUEST['tref'] ?? '';
 $InvoiceNumber = $_REQUEST['iN'] ?? '';
 $InvoiceDate = $_REQUEST['iD'] ?? '';
 $TerminalID = $GATEWAY['pasargad_terminal_id'];
 $MerchantID = $GATEWAY['pasargad_merchant_id'];
 
-
 if ($order_id == substr($InvoiceNumber, 0, -2)) {
-    $invoiceid = checkCbInvoiceID($order_id, $GATEWAY['name']);
-    if (!empty($invoiceid)) {
+    $invoiceId = checkCbInvoiceID($order_id, $GATEWAY['name']);
+    if (!empty($invoiceId)) {
         checkCbTransID($TransactionReferenceID);
 
         if ($TransactionReferenceID != '')
@@ -42,16 +30,16 @@ if ($order_id == substr($InvoiceNumber, 0, -2)) {
             else {
                 $Request = PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalID, $MerchantID, $amount);
                 if (isset($Request) && $Request->IsSuccess) {
-                    addInvoicePayment($invoiceid, $TransactionReferenceID, $amount, 0, $gatewaymodule);
+                    addInvoicePayment($invoiceId, $TransactionReferenceID, $amount, 0, $gatewayModule);
                     logTransaction($GATEWAY["name"], array(
-                        'invoiceid' => $invoiceid,
-                        'order_id' => $invoiceid,
+                        'invoiceid' => $invoiceId,
+                        'order_id' => $invoiceId,
                         'amount' => $amount,
                         'tran_id' => $TransactionReferenceID,
                         'refcode' => $TransactionReferenceID,
                         'status' => 'paid'
                     ), "موفق");
-                    Header('Location: ' . $whmcs_url . '/viewinvoice.php?id=' . $invoiceid);
+                    Header('Location: ' . $whmcs_url . '/viewinvoice.php?id=' . $invoiceId);
                 } else
                     $message = $Request->Message;
             }

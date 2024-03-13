@@ -1,32 +1,22 @@
-<?php /** @noinspection PhpIncludeInspection, PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
+<?php /** @noinspection PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
 
-if (file_exists('../../../init.php'))
-    require('../../../init.php');
-else
-    require("../../../dbconnect.php");
-include("../../../includes/functions.php");
-include("../../../includes/gatewayfunctions.php");
-include("../../../includes/invoicefunctions.php");
+include "./includes/shared.php";
+//echo implode(" - ", array_keys($GATEWAY));
 
-$gatewaymodule = 'pasargad';
-$GATEWAY = getGatewayVariables($gatewaymodule);
-if (!$GATEWAY['type']) die('Module Not Activated'); # Checks gateway module is active before accepting callback
-
-$TerminalID = $GATEWAY['pasargad_terminal_id'];
-$MerchantID = $GATEWAY['pasargad_merchant_id'];
+$terminalId = $GATEWAY['pasargad_terminal_id'];
+$merchantId = $GATEWAY['pasargad_merchant_id'];
 $amount = intval($_POST['amount']);
-$invoiceId = $_POST['invoiceid'];
+$invoiceId = $_POST['invoice_id'];
 $email = $_POST['email'];
 
-$order_id = $invoiceId . mt_rand(10, 100);
-$CallBackUrl = $CONFIG['SystemURL'] . '/modules/gateways/pasargad/callback.php?a=' . $amount .
-    '&invoiceid=' . $invoiceId;
+$orderId = $invoiceId . mt_rand(10, 100);
+$callbackUrl = $whmcs_url . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId;
 
-$Request = PepPayRequest($order_id, $TerminalID, $MerchantID, $amount, $CallBackUrl, '', $email);
-if (isset($Request) && $Request->IsSuccess)
-    redirect('https://pep.shaparak.ir/payment.aspx?n=' . $Request->Token);
+$request = PepPayRequest($orderId, $terminalId, $merchantId, $amount, $callbackUrl, '', $email);
+if (isset($request) && $request->IsSuccess)
+    redirect('https://pep.shaparak.ir/payment.aspx?n=' . $request->Token);
 else {
-    $message = $Request->Message ?? 'خطای نامشخص';
+    $message = $request->Message ?? 'خطای نامشخص';
     echo '<!DOCTYPE html> 
 <html lang="fa" dir="rtl">
 <head>
@@ -55,12 +45,13 @@ main {
 	<main>
 		<span style="color:#ff0000;"><b>خطا در ارسال به بانک</b></span><br>
 		<p style="text-align:center;">' . $message . '</p>
-		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceid . '">بازگشت >></a>
+		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
 		<br><br>
 	</main>
 </body>
 </html>';
 }
+
 function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $RedirectAddress,
                        $Mobile = '', $Email = '') {
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
@@ -70,8 +61,8 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
     );
     if (!function_exists('jdate'))
         require_once(dirname(__FILE__) . '/includes/jdf.php');
-    $data = array(
-        'InvoiceNumber' => $InvoiceNumber,
+
+    $data = array(/*'InvoiceNumber' => $InvoiceNumber,
         'InvoiceDate' => jdate('Y/m/d'),
         'TerminalCode' => $TerminalCode,
         'MerchantCode' => $MerchantCode,
@@ -80,7 +71,8 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
         'Timestamp' => date('Y/m/d H:i:s'),
         'Action' => 1003,
         'Mobile' => $Mobile,
-        'Email' => $Email
+        'Email' => $Email*/
+
     );
 
     $sign_data = json_encode($data);
@@ -88,7 +80,7 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
     $sign_data = $processor->sign($sign_data);
     $sign = base64_encode($sign_data);
 
-    $curl = curl_init('https://pep.shaparak.ir/Api/v1/Payment/GetToken');
+    $curl = curl_init($PEP_BASE_URL . 'token/getToken');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -99,16 +91,14 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
     );
     $result = json_decode(curl_exec($curl));
     curl_close($curl);
-
     return $result;
 }
 
 function redirect($url) {
-    if ($url != '') {
-        if (headers_sent())
-            echo '<script type="text/javascript">window.location.assign("' . $url . '")</script>';
-        else
-            header("Location: $url");
-        exit();
-    }
+    if ($url == '') return;
+    if (headers_sent())
+        echo '<script type="text/javascript">window.location.assign("' . $url . '")</script>';
+    else
+        header("Location: $url");
+    exit();
 }

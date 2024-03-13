@@ -26,18 +26,15 @@ function pasargad_config(): array {
 }
 
 function pasargad_link($params): string {
-    $currencies = $params['Currencies'];
-    $invoiceid = $params['invoiceid'];
     $ex_amount = explode('.', $params['amount']);
     $amount = $ex_amount[0];
-    $email = $params['clientdetails']['email'];
-
-    if ($currencies == 'toman') $amount = $amount * 10;
+    if ($params['Currencies'] == 'toman') $amount = $amount * 10;
 
     return '<form method="post" action="modules/gateways/pasargad/pay.php">
-        <input type="hidden" name="invoiceid" value="' . $invoiceid . '" />
+        <input type="hidden" name="invoice_id" value="' . $params['invoice_id'] . '" />
         <input type="hidden" name="amount" value="' . $amount . '" />
-		<input type="hidden" name="email" value="' . $email . '" />
-        <input type="submit" name="pay" value=" پرداخت " /></form>
-    ';
+		<input type="hidden" name="email" value="' . $params['clientdetails']['email'] . '" />
+        <input type="submit" name="pay" value=" پرداخت " />
+    </form>
+';
 }
