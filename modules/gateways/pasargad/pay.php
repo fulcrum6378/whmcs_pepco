@@ -1,55 +1,43 @@
-<?php /** @noinspection PhpUndefinedFunctionInspection */
+<?php
 
 include "./includes/shared.php";
 
-$terminalId = $GATEWAY['TerminalNumber'];
-$amount = intval($_POST['amount']);
+# Input Data
 $invoiceId = $_POST['invoice_id'];
-$email = $_POST['email'];
+$amount = intval($_POST['amount']);
 
-$orderId = $invoiceId . mt_rand(10, 100);
-$callbackUrl = $whmcs_url . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId;
-
-$request = PepPayRequest($orderId, $terminalId, $amount, $callbackUrl, '', $email);
-if (isset($request) && $request->IsSuccess)
-    redirect('https://pep.shaparak.ir/payment.aspx?n=' . $request->Token);
+# Token Request
+$tokenReq = PepTokenRequest();
+if (isset($tokenReq) && $tokenReq->resultCode == 0)
+    $token = $tokenReq->token;
 else {
-    $message = $request->Message ?? 'خطای نامشخص';
-    echo '<!DOCTYPE html> 
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>خطا در ارسال به بانک</title>
-<style>
-body {
-    font-family: tahoma, serif;
-    text-align: center;
-    margin-top: 30px;
-}
-main {
-    font-family: tahoma, serif;
-    font-size: 12px;
-    border: 1px dotted #c3c3c3;
-    width: 60%;
-    margin: 50px auto 0 auto;
-    line-height: 25px;
-    padding-left: 12px;
-    padding-top: 8px;
-}
-</style>
-</head>
-
-<body>
-	<main>
-		<span style="color: #FF0000;"><b>خطا در ارسال به بانک</b></span><br>
-		<p style="text-align: center;">' . $message . '</p>
-		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
-		<br><br>
-	</main>
-</body>
-</html>';
+    error($tokenReq, 'خطا در دریافت توکن');
+    exit();
 }
 
+# Purchase Request
+$purchase = PepPurchaseRequest(
+    $token,
+    $invoiceId . mt_rand(10, 100),
+    $amount,
+    $_POST['email'],
+    $WHMCS_URL . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId);
+
+if (isset($purchase) && $purchase->resultCode == 0)
+    redirect($PEP_BASE_URL . $purchase->data->urlId);
+else
+    error($purchase, 'خطا در ارسال به بانک');
+
+
+/** Retrieves a token.
+ * Test via PowerShell:
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
+-Method "POST" `
+-WebSession $session `
+-ContentType "application/json" `
+-Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
+ */
 function PepTokenRequest() {
     global $GATEWAY, $PEP_BASE_URL;
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
@@ -79,16 +67,13 @@ function PepTokenRequest() {
             'Sign: ' . $sign
         )
     );
-    $res = curl_exec($curl);
-    echo $res;
-    $result = json_decode($res);
+    $result = json_decode(curl_exec($curl));
     curl_close($curl);
     return $result;
 }
 
-function PepPayRequest($invoiceNumber, $terminalCode, $merchantCode, $amount, $redirectAddress,
-                       $mobile = '', $email = '') {
-    global $PEP_BASE_URL;
+function PepPurchaseRequest($token, $invoice, $amount, $payerMail, $callbackUrl) {
+    global $GATEWAY, $PEP_BASE_URL;
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
     $processor = new RSAProcessor(
         dirname(__FILE__) . '/includes/certificate.xml',
@@ -98,17 +83,41 @@ function PepPayRequest($invoiceNumber, $terminalCode, $merchantCode, $amount, $r
         require_once(dirname(__FILE__) . '/includes/jdf.php');
 
     $data = array(
-        "amount" => $amount,
-        "callbackApi" => $redirectAddress,
-
-        'InvoiceNumber' => $InvoiceNumber,
-        'InvoiceDate' => jdate('Y/m/d'),
-        'TerminalCode' => $TerminalCode,
-        'Timestamp' => date('Y/m/d H:i:s'),
-        'Action' => 1003,
-        'Mobile' => $Mobile,
-        'Email' => $Email,
+        'amount' => $amount,
+        'callbackApi' => $callbackUrl,
+        'description' => '',//TODO
+        'invoice' => $invoice,
+        'invoiceDate' => date('Y-m-d'),
+        'mobileNumber' => '',//TODO
+        'payerMail' => $payerMail,
+        'payerName' => '',//TODO
+        'serviceCode' => 8,
+        'serviceType' => 'PURCHASE',
+        'terminalNumber' => $GATEWAY['TerminalNumber'],
+        'nationalCode' => null,//TODO
+        'pans' => '',//TODO
     );
+
+    $sign_data = json_encode($data);
+    $sign_data = sha1($sign_data, true);
+    $sign_data = $processor->sign($sign_data);
+    $sign = base64_encode($sign_data);
+
+    $curl = curl_init($PEP_BASE_URL . '/api/payment/purchase');
+    curl_setopt($curl, CURLOPT_POST, 1);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Sign: ' . $sign,
+            'Authorization: Bearer ' . $token,
+        )
+    );
+    $res = curl_exec($curl);
+    echo $res;
+    $result = json_decode($res);
+    curl_close($curl);
+    return $result;
 }
 
 function redirect($url) {
@@ -120,11 +129,39 @@ function redirect($url) {
     exit();
 }
 
-/* In order to test PepTokenRequest() via PowerShell:
-$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
--Method "POST" `
--WebSession $session `
--ContentType "application/json" `
--Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
-*/
+function error($req, $title) {
+    global $CONFIG, $invoiceId;
+    echo '<!DOCTYPE html> 
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>' . $title . '</title>
+<style>
+body {
+    font-family: tahoma, serif;
+    text-align: center;
+    margin-top: 30px;
+}
+main {
+    font-family: tahoma, serif;
+    font-size: 12px;
+    border: 1px dotted #c3c3c3;
+    width: 60%;
+    margin: 50px auto 0 auto;
+    line-height: 25px;
+    padding-left: 12px;
+    padding-top: 8px;
+}
+</style>
+</head>
+
+<body>
+	<main>
+		<span style="color: #FF0000;"><b>' . $title . '</b></span><br>
+		<p style="text-align: center;">' . $req->resultMsg ?? 'خطای نامشخص' . '</p>
+		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
+		<br><br>
+	</main>
+</body>
+</html>';
+}

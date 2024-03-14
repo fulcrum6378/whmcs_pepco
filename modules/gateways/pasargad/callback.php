@@ -30,7 +30,7 @@ if ($orderId == substr($invoiceNumber, 0, -2)) {
             else {
                 $Request = PepVerifyRequest($invoiceNumber, $invoiceDate, $terminalId, $merchantId, $amount);
                 if (isset($Request) && $Request->IsSuccess) {
-                    addInvoicePayment($invoiceId, $transactionReferenceId, $amount, 0, $gatewayModule);
+                    addInvoicePayment($invoiceId, $transactionReferenceId, $amount, 0, $MODULE_NAME);
                     logTransaction($GATEWAY["name"], array(
                         'invoiceid' => $invoiceId,
                         'order_id' => $invoiceId,
@@ -39,7 +39,7 @@ if ($orderId == substr($invoiceNumber, 0, -2)) {
                         'refcode' => $transactionReferenceId,
                         'status' => 'paid'
                     ), "موفق");
-                    Header('Location: ' . $whmcs_url . '/viewinvoice.php?id=' . $invoiceId);
+                    Header('Location: ' . $WHMCS_URL . '/viewinvoice.php?id=' . $invoiceId);
                 } else
                     $message = $Request->Message;
             }
