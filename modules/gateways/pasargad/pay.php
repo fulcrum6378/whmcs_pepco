@@ -1,4 +1,4 @@
-<?php /** @noinspection PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
+<?php /** @noinspection PhpUndefinedFunctionInspection */
 
 include "./includes/shared.php";
 
@@ -11,7 +11,6 @@ $orderId = $invoiceId . mt_rand(10, 100);
 $callbackUrl = $whmcs_url . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId;
 
 $request = PepPayRequest($orderId, $terminalId, $amount, $callbackUrl, '', $email);
-echo implode(" - ", array_keys($request));
 if (isset($request) && $request->IsSuccess)
     redirect('https://pep.shaparak.ir/payment.aspx?n=' . $request->Token);
 else {
@@ -51,8 +50,8 @@ main {
 </html>';
 }
 
-function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $RedirectAddress,
-                       $Mobile = '', $Email = '') {
+function PepTokenRequest() {
+    global $GATEWAY, $PEP_BASE_URL;
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
     $processor = new RSAProcessor(
         dirname(__FILE__) . '/includes/certificate.xml',
@@ -62,17 +61,8 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
         require_once(dirname(__FILE__) . '/includes/jdf.php');
 
     $data = array(
-        /*'InvoiceNumber' => $InvoiceNumber,
-        'InvoiceDate' => jdate('Y/m/d'),
-        'TerminalCode' => $TerminalCode,
-        'Amount' => $Amount,
-        'RedirectAddress' => $RedirectAddress,
-        'Timestamp' => date('Y/m/d H:i:s'),
-        'Action' => 1003,
-        'Mobile' => $Mobile,
-        'Email' => $Email,*/
-        'username' => 'test',
-        'password' => '123456"',
+        'username' => $GATEWAY['Username'],
+        'password' => $GATEWAY['Password'],
     );
 
     $sign_data = json_encode($data);
@@ -89,9 +79,36 @@ function PepPayRequest($InvoiceNumber, $TerminalCode, $MerchantCode, $Amount, $R
             'Sign: ' . $sign
         )
     );
-    $result = json_decode(curl_exec($curl));
+    $res = curl_exec($curl);
+    echo $res;
+    $result = json_decode($res);
     curl_close($curl);
     return $result;
+}
+
+function PepPayRequest($invoiceNumber, $terminalCode, $merchantCode, $amount, $redirectAddress,
+                       $mobile = '', $email = '') {
+    global $PEP_BASE_URL;
+    require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
+    $processor = new RSAProcessor(
+        dirname(__FILE__) . '/includes/certificate.xml',
+        RSAKeyType::XMLFile
+    );
+    if (!function_exists('jdate'))
+        require_once(dirname(__FILE__) . '/includes/jdf.php');
+
+    $data = array(
+        "amount" => $amount,
+        "callbackApi" => $redirectAddress,
+
+        'InvoiceNumber' => $InvoiceNumber,
+        'InvoiceDate' => jdate('Y/m/d'),
+        'TerminalCode' => $TerminalCode,
+        'Timestamp' => date('Y/m/d H:i:s'),
+        'Action' => 1003,
+        'Mobile' => $Mobile,
+        'Email' => $Email,
+    );
 }
 
 function redirect($url) {
@@ -102,3 +119,12 @@ function redirect($url) {
         header("Location: $url");
     exit();
 }
+
+/* In order to test PepTokenRequest() via PowerShell:
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
+-Method "POST" `
+-WebSession $session `
+-ContentType "application/json" `
+-Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
+*/

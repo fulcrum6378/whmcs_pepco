@@ -6,6 +6,11 @@ function pasargad_config(): array {
             "Type" => "System",
             "Value" => "درگاه پرداخت پاسارگاد"
         ),
+        "TerminalNumber" => array(
+            "FriendlyName" => "شماره ترمینال پرداختی",
+            "Type" => "text",
+            "Size" => "50",
+        ),
         "Username" => array(
             "FriendlyName" => "نام کاربری",
             "Type" => "text",
@@ -16,16 +21,6 @@ function pasargad_config(): array {
             "Type" => "text",
             "Size" => "50",
         ),
-        "TerminalNumber" => array(
-            "FriendlyName" => "شماره ترمینال",
-            "Type" => "text",
-            "Size" => "50",
-        ),
-        /*"MerchantID" => array(
-            "FriendlyName" => "شماره فروشگاه",
-            "Type" => "text",
-            "Size" => "50",
-        ),*/
         "Currency" => array(
             "FriendlyName" => "واحد پول سیستم",
             "Type" => "dropdown",
