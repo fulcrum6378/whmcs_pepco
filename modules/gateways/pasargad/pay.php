@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUndefinedVariableInspection */
 
 include "./includes/shared.php";
 
@@ -17,10 +17,7 @@ else {
 
 # Purchase Request
 $purchase = PepPurchaseRequest(
-    $token,
-    $invoiceId . mt_rand(10, 100),
-    $amount,
-    $_POST['email'],
+    $token, $invoiceId . mt_rand(10, 100), $amount,
     $WHMCS_URL . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId);
 
 if (isset($purchase) && $purchase->resultCode == 0)
@@ -31,12 +28,12 @@ else
 
 /** Retrieves a token.
  * Test via PowerShell:
-$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
--Method "POST" `
--WebSession $session `
--ContentType "application/json" `
--Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
+ * $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+ * Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
+ * -Method "POST" `
+ * -WebSession $session `
+ * -ContentType "application/json" `
+ * -Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
  */
 function PepTokenRequest() {
     global $GATEWAY, $PEP_BASE_URL;
@@ -45,8 +42,6 @@ function PepTokenRequest() {
         dirname(__FILE__) . '/includes/certificate.xml',
         RSAKeyType::XMLFile
     );
-    if (!function_exists('jdate'))
-        require_once(dirname(__FILE__) . '/includes/jdf.php');
 
     $data = array(
         'username' => $GATEWAY['Username'],
@@ -72,30 +67,28 @@ function PepTokenRequest() {
     return $result;
 }
 
-function PepPurchaseRequest($token, $invoice, $amount, $payerMail, $callbackUrl) {
+function PepPurchaseRequest($token, $invoice, $amount, $callbackUrl) {
     global $GATEWAY, $PEP_BASE_URL;
     require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
     $processor = new RSAProcessor(
         dirname(__FILE__) . '/includes/certificate.xml',
         RSAKeyType::XMLFile
     );
-    if (!function_exists('jdate'))
-        require_once(dirname(__FILE__) . '/includes/jdf.php');
 
     $data = array(
         'amount' => $amount,
         'callbackApi' => $callbackUrl,
-        'description' => '',//TODO
+        'description' => '',
         'invoice' => $invoice,
         'invoiceDate' => date('Y-m-d'),
-        'mobileNumber' => '',//TODO
-        'payerMail' => $payerMail,
-        'payerName' => '',//TODO
+        'mobileNumber' => '',
+        'payerMail' => '',
+        'payerName' => '',
         'serviceCode' => 8,
         'serviceType' => 'PURCHASE',
         'terminalNumber' => $GATEWAY['TerminalNumber'],
-        'nationalCode' => null,//TODO
-        'pans' => '',//TODO
+        'nationalCode' => '',
+        'pans' => '',
     );
 
     $sign_data = json_encode($data);
