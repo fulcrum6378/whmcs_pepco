@@ -17,8 +17,8 @@ else {
 
 # Purchase Request
 $purchase = PepPurchaseRequest(
-    $token, $invoiceId . mt_rand(10, 100), $amount,
-    $WHMCS_URL . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId);
+    $token, $invoiceId/* . mt_rand(10, 100)*/, $amount,
+    $WHMCS_URL . '/modules/gateways/pasargad/callback.php');
 
 if (isset($purchase) && $purchase->resultCode == 0)
     redirect($PEP_BASE_URL . '/' . $purchase->data->urlId);
