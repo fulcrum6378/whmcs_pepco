@@ -2,21 +2,22 @@
 
 include "./includes/shared.php";
 
-$status = $_GET['status'] ?? ''; // 'cancel'
-$extInvoiceId = $_GET['invoiceId'] ?? ''; // 1586652
-$referenceNumber = $_GET['referenceNumber']; // 'null' (on cancellation)
-$_GET['trackId']; // 18
+# process the GET parameters
+$status = $_GET['status'] ?? '';
+$extInvoiceId = $_GET['invoiceId'] ?? ''; // two latter digits are to be discarded
+$referenceNumber = $_GET['referenceNumber'] ?? ''; // 'null' (on cancellation)
+$trackId = $_GET['trackId'] ?? ''; // 18
 
-// check if invoice ID is passed...
-if ($extInvoiceId == '')
-    error('خطا در پارامتر ورودی',
+# check if all the required GET parameters are passed
+if (empty($status) || empty($extInvoiceId) || empty($referenceNumber) || empty($trackId))
+    error('خطا در پارامتر های ورودی',
         'متاسفانه پارامتر ورودی شما معتبر نیست!
 در صورتی که وجه پرداختی از حساب بانکی شما کسر شده باشد
 به صورت خودکار از سوی بانک به حساب شما باز خواهد گشت (نهایت مدت زمان بازگشت به حساب 72 ساعت می باشد)',
         'پس از بازگشت از بانک شماره سفارش موجود نبود');
 
-// check if this invoice exists...
-$invoiceId = $extInvoiceId;//substr($extInvoiceId, 0, -2);
+# check if the requested invoice exists
+$invoiceId = substr($extInvoiceId, 0, -2);
 if (empty(checkCbInvoiceID($invoiceId, $GATEWAY['name'])))
     error('سفارش یافت نشد',
         'متاسفانه سفارش شما در سایت یافت نشد !
@@ -24,70 +25,55 @@ if (empty(checkCbInvoiceID($invoiceId, $GATEWAY['name'])))
 به صورت خودکار از سوی بانک به حساب شما باز خواهد گشت (نهایت مدت زمان بازگشت به حساب 72 ساعت می باشد)',
         'سفارش در سایت یافت نشد');
 
-/*if ($status != 'success') { // 'cancel'
-    echo '';
-    exit();
-}*/
-//checkCbTransID($referenceNumber);
-// TODO check the situation when the invoice is already paid...
+// redirect to page of invoice, if unsuccessful...
+$invoiceUrl = $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId;
+if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
+    redirect($invoiceUrl);
+//TODO checkCbTransID($referenceNumber);
+$paymentInquiry = PepPaymentInquiry($extInvoiceId);
+/*if (!isset($paymentInquiry) || $paymentInquiry->resultCode != 0)
+    redirect($invoiceUrl);*/
+$tokenUrl = $paymentInquiry->data->url;
+echo $tokenUrl . '\n';
+echo $trackId . ' == ' . $paymentInquiry->data->trackId . '\n';
+echo $referenceNumber . ' == ' . $paymentInquiry->data->referenceNumber . '\n';
+echo json_encode($paymentInquiry);
+exit();
 
-if ($referenceNumber != 'null')
-    $checkResult = PepCheckTransactionResult($transactionReferenceId);
-else
-    $checkResult = PepCheckTransactionResult(null,
-        $invoiceNumber, $invoiceDate, $GATEWAY['TerminalNumber'], $merchantId);
+$verification = PepVerifyRequest(
+    $invoiceNumber, $invoiceDate, $GATEWAY['TerminalNumber'], $merchantId, $paymentInquiry->data->amount);
 
-if (isset($checkResult) && $checkResult->IsSuccess && $checkResult->InvoiceNumber == $invoiceNumber) {
-    $amount = $checkResult->Amount;
-
-    if (strlen($getAmount) == 0 || $getAmount != $amount)
-        $message = 'مبلغ پرداختی نادرست است،
-وجه کسر شده به صورت خودکار از سوی بانک به حساب شما بازگشت داده خواهد شد.';
-    else {
-        $Request = PepVerifyRequest(
-            $invoiceNumber, $invoiceDate, $GATEWAY['TerminalNumber'], $merchantId, $amount);
-        if (isset($Request) && $Request->IsSuccess) {
-            addInvoicePayment($invoiceId, $transactionReferenceId, $amount, 0, $MODULE_NAME);
-            logTransaction($GATEWAY["name"], array(
-                'invoiceid' => $invoiceId,
-                'order_id' => $invoiceId,
-                'amount' => $amount,
-                'tran_id' => $transactionReferenceId,
-                'refcode' => $transactionReferenceId,
-                'status' => 'paid'
-            ), "موفق");
-            Header('Location: ' . $WHMCS_URL . '/viewinvoice.php?id=' . $invoiceId);
-        } else $message = $Request->Message;
-    }
-} else $message = 'پرداخت توسط شما انجام نشده است';
+if (isset($verification) && $verification->IsSuccess) {
+    addInvoicePayment($invoiceId, $transactionReferenceId, $paymentInquiry->data->amount, 0, MODULE_NAME);
+    logTransaction($GATEWAY["name"], array(
+        'invoiceid' => $invoiceId,
+        'order_id' => $invoiceId,
+        'amount' => $paymentInquiry->data->amount,
+        'tran_id' => $transactionReferenceId,
+        'refcode' => $transactionReferenceId,
+        'status' => 'paid'
+    ), "موفق");
+    Header('Location: ' . $WHMCS_URL . '/viewinvoice.php?id=' . $invoiceId);
+} else $message = $verification->Message;
 display_error($error_code ?? null, $transactionReferenceId, $orderId, $getAmount, $message ?? '');
 
-function PepCheckTransactionResult(
-    $TransactionReferenceID, $InvoiceNumber = '', $InvoiceDate = '', $TerminalCode = '', $MerchantCode = '') {
+function PepPaymentInquiry(string $invoiceId) {
+    global $GATEWAY;
     $data = array(
-        'InvoiceNumber' => $InvoiceNumber,
-        'InvoiceDate' => $InvoiceDate,
-        'TerminalCode' => $TerminalCode,
-        'MerchantCode' => $MerchantCode,
-        'TransactionReferenceID' => $TransactionReferenceID
+        'invoiceId' => $invoiceId,
+        'terminalNumber' => $GATEWAY['TerminalNumber'],
     );
-    $curl = curl_init('https://pep.shaparak.ir/Api/v1/Payment/CheckTransactionResult');
+    $curl = curl_init(PEP_BASE_URL . '/api/v2/payment/payment-inquiry');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
     $result = json_decode(curl_exec($curl));
     curl_close($curl);
-
     return $result;
 }
 
 function PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $MerchantCode, $Amount) {
-    require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
-    $processor = new RSAProcessor(
-        dirname(__FILE__) . '/includes/certificate.xml',
-        RSAKeyType::XMLFile
-    );
     $data = array(
         'InvoiceNumber' => $InvoiceNumber,
         'InvoiceDate' => $InvoiceDate,
@@ -96,33 +82,21 @@ function PepVerifyRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $Merchant
         'Amount' => $Amount,
         'Timestamp' => date('Y/m/d H:i:s')
     );
-
-    $sign_data = json_encode($data);
-    $sign_data = sha1($sign_data, true);
-    $sign_data = $processor->sign($sign_data);
-    $sign = base64_encode($sign_data);
-
     $curl = curl_init('https://pep.shaparak.ir/Api/v1/Payment/VerifyPayment');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
-            'Sign: ' . $sign
+            'Sign: ' . signData($data)
         )
     );
     $result = json_decode(curl_exec($curl));
     curl_close($curl);
-
     return $result;
 }
 
 function PepReversalRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $MerchantCode) {
-    require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
-    $processor = new RSAProcessor(
-        dirname(__FILE__) . '/includes/certificate.xml',
-        RSAKeyType::XMLFile
-    );
     $data = array(
         'InvoiceNumber' => $InvoiceNumber,
         'InvoiceDate' => $InvoiceDate,
@@ -130,24 +104,17 @@ function PepReversalRequest($InvoiceNumber, $InvoiceDate, $TerminalCode, $Mercha
         'MerchantCode' => $MerchantCode,
         'Timestamp' => date('Y/m/d H:i:s')
     );
-
-    $sign_data = json_encode($data);
-    $sign_data = sha1($sign_data, true);
-    $sign_data = $processor->sign($sign_data);
-    $sign = base64_encode($sign_data);
-
     $curl = curl_init('https://pep.shaparak.ir/Api/v1/Payment/RefundPayment');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
-            'Sign: ' . $sign
+            'Sign: ' . signData($data)
         )
     );
     $result = json_decode(curl_exec($curl));
     curl_close($curl);
-
     return $result;
 }
 
@@ -193,7 +160,7 @@ function display_error($pay_status = '', $tran_id = '', $order_id = '', $amount 
     }
 }
 
-function error($title, $clientMsg, $adminMsg) {
+function error($title, $clientMsg, $adminMsg): void {
     global $CONFIG, $GATEWAY, $invoiceId;
     echo '<!DOCTYPE html> 
 <html lang="fa" dir="rtl">

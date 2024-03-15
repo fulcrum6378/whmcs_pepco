@@ -2,31 +2,37 @@
 
 include "./includes/shared.php";
 
-# Input Data
+# process the POST parameters
+if (empty($_POST['invoice_id']) || empty($_POST['amount']))
+    error((object)['resultMsg' =>
+        'Parameters { ' .
+        (empty($_POST['invoice_id']) ? 'invoice_id, ' : '') .
+        (empty($_POST['amount']) ? 'amount, ' : '') .
+        ' } are missing.'
+    ], 'خطا در پارامتر های ورودی');
 $invoiceId = $_POST['invoice_id'];
 $amount = intval($_POST['amount']);
 
-# Token Request
-$tokenReq = PepTokenRequest();
+# get a token for interacting with API
+$tokenReq = PepGetToken();
 if (isset($tokenReq) && $tokenReq->resultCode == 0)
     $token = $tokenReq->token;
-else {
+else
     error($tokenReq, 'خطا در دریافت توکن');
-    exit();
-}
 
-# Purchase Request
-$purchase = PepPurchaseRequest(
-    $token, $invoiceId/* . mt_rand(10, 100)*/, $amount,
+# send the purchase request and get a URL
+$purchase = PepPurchase(
+    $token, $invoiceId . mt_rand(10, 100), $amount,
     $WHMCS_URL . '/modules/gateways/pasargad/callback.php');
 
+# redirect to the received token-like URL (different from the API token)
 if (isset($purchase) && $purchase->resultCode == 0)
-    redirect($PEP_BASE_URL . '/' . $purchase->data->urlId);
+    redirect(PEP_BASE_URL . '/' . $purchase->data->urlId);
 else
     error($purchase, 'خطا در ارسال به بانک');
 
 
-/** Retrieves a token.
+/** Retrieves a token for future interactions with the API.
  * Test via PowerShell:
  * $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
  * Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
@@ -35,31 +41,19 @@ else
  * -ContentType "application/json" `
  * -Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
  */
-function PepTokenRequest() {
-    global $GATEWAY, $PEP_BASE_URL;
-    require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
-    $processor = new RSAProcessor(
-        dirname(__FILE__) . '/includes/certificate.xml',
-        RSAKeyType::XMLFile
-    );
-
+function PepGetToken() {
+    global $GATEWAY;
     $data = array(
         'username' => $GATEWAY['Username'],
         'password' => $GATEWAY['Password'],
     );
-
-    $sign_data = json_encode($data);
-    $sign_data = sha1($sign_data, true);
-    $sign_data = $processor->sign($sign_data);
-    $sign = base64_encode($sign_data);
-
-    $curl = curl_init($PEP_BASE_URL . '/token/getToken');
+    $curl = curl_init(PEP_BASE_URL . '/token/getToken');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
-            'Sign: ' . $sign
+            'Sign: ' . signData($data)
         )
     );
     $result = json_decode(curl_exec($curl));
@@ -67,14 +61,9 @@ function PepTokenRequest() {
     return $result;
 }
 
-function PepPurchaseRequest($token, $invoice, $amount, $callbackUrl) {
-    global $GATEWAY, $PEP_BASE_URL;
-    require_once(dirname(__FILE__) . '/includes/RSAProcessor.class.php');
-    $processor = new RSAProcessor(
-        dirname(__FILE__) . '/includes/certificate.xml',
-        RSAKeyType::XMLFile
-    );
-
+/** Registers a purchase via the API. */
+function PepPurchase(string $token, string $invoice, int $amount, string $callbackUrl) {
+    global $GATEWAY;
     $data = array(
         'amount' => $amount,
         'callbackApi' => $callbackUrl,
@@ -90,19 +79,13 @@ function PepPurchaseRequest($token, $invoice, $amount, $callbackUrl) {
         'nationalCode' => '',
         'pans' => '',
     );
-
-    $sign_data = json_encode($data);
-    $sign_data = sha1($sign_data, true);
-    $sign_data = $processor->sign($sign_data);
-    $sign = base64_encode($sign_data);
-
-    $curl = curl_init($PEP_BASE_URL . '/api/payment/purchase');
+    $curl = curl_init(PEP_BASE_URL . '/api/payment/purchase');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
-            'Sign: ' . $sign,
+            'Sign: ' . signData($data),
             'Authorization: Bearer ' . $token,
         )
     );
@@ -111,16 +94,7 @@ function PepPurchaseRequest($token, $invoice, $amount, $callbackUrl) {
     return $result;
 }
 
-function redirect($url) {
-    if ($url == '') return;
-    if (headers_sent())
-        echo '<script type="text/javascript">window.location.assign("' . $url . '");</script>';
-    else
-        header("Location: $url");
-    exit();
-}
-
-function error($req, $title) {
+function error(?object $req, string $title): void {
     global $CONFIG, $invoiceId;
     echo '<!DOCTYPE html> 
 <html lang="fa" dir="rtl">
@@ -149,10 +123,11 @@ main {
 <body>
 	<main>
 		<span style="color: #FF0000;"><b>' . $title . '</b></span><br>
-		<p style="text-align: center;">' . $req->resultMsg ?? 'خطای نامشخص' . '</p>
+		<p dir="ltr">' . ($req->resultMsg ?? 'خطای نامشخص') . '</p>
 		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
 		<br><br>
 	</main>
 </body>
 </html>';
+    exit();
 }
