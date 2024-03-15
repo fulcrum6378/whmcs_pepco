@@ -35,7 +35,7 @@ function pasargad_link($params): string {
     if ($params['Currency'] == 'toman') $amount = $amount * 10;
 
     return '<form method="post" action="modules/gateways/pasargad/pay.php">
-        <input type="hidden" name="invoice_id" value="' . $params['invoice_id'] . '" />
+        <input type="hidden" name="invoice_id" value="' . $params['invoiceid'] . '" />
         <input type="hidden" name="amount" value="' . $amount . '" />
 		<input type="hidden" name="email" value="' . $params['clientdetails']['email'] . '" />
         <input type="submit" name="pay" value=" پرداخت " />

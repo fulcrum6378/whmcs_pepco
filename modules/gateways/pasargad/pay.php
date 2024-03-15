@@ -24,7 +24,7 @@ $purchase = PepPurchaseRequest(
     $WHMCS_URL . '/modules/gateways/pasargad/callback.php?amount=' . $amount . '&invoice_id=' . $invoiceId);
 
 if (isset($purchase) && $purchase->resultCode == 0)
-    redirect($PEP_BASE_URL . $purchase->data->urlId);
+    redirect($PEP_BASE_URL . '/' . $purchase->data->urlId);
 else
     error($purchase, 'خطا در ارسال به بانک');
 
@@ -113,9 +113,7 @@ function PepPurchaseRequest($token, $invoice, $amount, $payerMail, $callbackUrl)
             'Authorization: Bearer ' . $token,
         )
     );
-    $res = curl_exec($curl);
-    echo $res;
-    $result = json_decode($res);
+    $result = json_decode(curl_exec($curl));
     curl_close($curl);
     return $result;
 }
