@@ -1,6 +1,6 @@
 <?php /** @noinspection PhpUndefinedVariableInspection */
 
-include "./includes/shared.php";
+include "shared.php";
 
 # process the POST parameters
 if (empty($_POST['invoice_id']) || empty($_POST['amount']))
@@ -32,7 +32,9 @@ else
     error($purchase, 'خطا در ارسال به بانک');
 
 
-/** Retrieves a token for future interactions with the API.
+/**
+ * Retrieves a token for future interactions with the API.
+ *
  * Test via PowerShell:
  * $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
  * Invoke-WebRequest -UseBasicParsing -Uri "https://pep.shaparak.ir/dorsa1/token/getToken" `
@@ -61,7 +63,12 @@ function PepGetToken() {
     return $result;
 }
 
-/** Registers a purchase via the API. */
+/**
+ * Registers a purchase via the API.
+ * This work should not be done in the _link() function;
+ * because the POST request needs the token to be put in the headers not the body!
+ * @see https://stackoverflow.com/questions/9516865/how-to-set-a-header-field-on-post-a-form/9516955#9516955
+ */
 function PepPurchase(string $token, string $invoice, int $amount, string $callbackUrl) {
     global $GATEWAY;
     $data = array(
@@ -95,39 +102,7 @@ function PepPurchase(string $token, string $invoice, int $amount, string $callba
 }
 
 function error(?object $req, string $title): void {
-    global $CONFIG, $invoiceId;
-    echo '<!DOCTYPE html> 
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>' . $title . '</title>
-<style>
-body {
-    font-family: tahoma, serif;
-    text-align: center;
-    margin-top: 30px;
-}
-main {
-    font-family: tahoma, serif;
-    font-size: 12px;
-    border: 1px dotted #c3c3c3;
-    width: 60%;
-    margin: 50px auto 0 auto;
-    line-height: 25px;
-    padding-left: 12px;
-    padding-top: 8px;
-}
-</style>
-</head>
-
-<body>
-	<main>
-		<span style="color: #FF0000;"><b>' . $title . '</b></span><br>
-		<p dir="ltr">' . ($req->resultMsg ?? 'خطای نامشخص') . '</p>
-		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
-		<br><br>
-	</main>
-</body>
-</html>';
+    global $invoiceId;
+    echo errorPage($title, ' dir="ltr">' . ($req->resultMsg ?? 'خطای نامشخص'), $invoiceId);
     exit();
 }

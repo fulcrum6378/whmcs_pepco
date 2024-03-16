@@ -20,7 +20,7 @@ $WHMCS_URL = $CONFIG['SystemURL'];
 
 /** Signs data for a secure API call using the RSAProcessor class and returns the signing key. */
 function signData(array $data): string {
-    require_once(dirname(__FILE__) . '/RSAProcessor.class.php');
+    require_once(dirname(__FILE__) . '/RSA.class.php');
     $processor = new RSAProcessor(
         dirname(__FILE__) . '/certificate.xml',
         RSAKeyType::XMLFile
@@ -39,4 +39,42 @@ function redirect(string $url): void {
     else
         header("Location: $url");
     exit();
+}
+
+/** Returns an HTML template page displaying the error messages. */
+function errorPage(string $title, string $paragraph, string $invoiceId): string {
+    global $CONFIG;
+    return '<!DOCTYPE html> 
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>' . $title . '</title>
+<style>
+body {
+    font-family: tahoma, serif;
+    text-align: center;
+    margin-top: 30px;
+}
+main {
+    font-family: tahoma, serif;
+    font-size: 12px;
+    border: 1px dotted #c3c3c3;
+    width: 60%;
+    margin: 50px auto 0 auto;
+    line-height: 25px;
+    padding-left: 12px;
+    padding-top: 8px;
+}
+</style>
+</head>
+
+<body>
+	<main>
+		<span style="color: #FF0000;"><b>' . $title . '</b></span><br>
+		<p' . $paragraph . '</p>
+		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
+		<br><br>
+	</main>
+</body>
+</html>';
 }

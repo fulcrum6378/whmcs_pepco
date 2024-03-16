@@ -1,12 +1,12 @@
 <?php
 
-include "../pasargad/includes/shared.php";
+include "../pasargad/shared.php";
 
 # process the GET parameters
 $status = $_GET['status'] ?? '';
 $extInvoiceId = $_GET['invoiceId'] ?? ''; // two latter digits are to be discarded
 $referenceNumber = $_GET['referenceNumber'] ?? ''; // 'null' (on cancellation)
-$trackId = $_GET['trackId'] ?? ''; // 18
+$trackId = $_GET['trackId'] ?? ''; // e.g. 18
 
 # check if all the required GET parameters are passed
 if (empty($status) || empty($extInvoiceId) || empty($referenceNumber) || empty($trackId))
@@ -64,48 +64,9 @@ function PepConfirm(string $invoiceId) {
     return $result;
 }
 
-function error($title, $clientMsg, $adminMsg): void {
-    global $CONFIG, $GATEWAY, $invoiceId;
-    echo '<!DOCTYPE html> 
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<title>' . $title . '</title>
-<style>
-body {
-    font-family: tahoma;
-    text-align: center;
-    margin-top: 30px;
-}
-main {
-    font-family: tahoma;
-    font-size: 12px;
-    border: 1px dotted #c3c3c3;
-    width: 60%;
-    margin: 50px auto 0 auto;
-    line-height: 25px;
-    padding-left: 12px;
-    padding-top: 8px;
-}
-</style>
-</head>
-
-<body>
-	<main>
-		<span style="color: #FF0000;"><b>' . $title . '</b></span><br>';
-    if (isset($retry_mess)) {
-        echo $retry_mess;
-    } else {
-        echo '
-        <p style="text-align: right; margin-right:8px;">' . $clientMsg . '</p>
-        <a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
-        <br><br>';
-    }
-    echo '
-    </main>
-</body>
-</html>';
-
+function error(string $title, string $clientMsg, string $adminMsg): void {
+    global $GATEWAY, $invoiceId;
+    echo errorPage($title, ' style="text-align: right; margin-right: 8px;">' . $clientMsg, $invoiceId);
     logTransaction($GATEWAY["name"], array(
         'invoiceid' => $invoiceId,
         'order_id' => $invoiceId,
