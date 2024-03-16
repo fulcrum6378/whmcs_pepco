@@ -1,5 +1,7 @@
 <?php /** @noinspection PhpUnused */
 
+if (!defined('WHMCS')) die('This file cannot be accessed directly');
+
 function pasargad_config(): array {
     return array(
         "FriendlyName" => array(

@@ -23,7 +23,7 @@ else
 # send the purchase request and get a URL
 $purchase = PepPurchase(
     $token, $invoiceId . mt_rand(10, 100), $amount,
-    $WHMCS_URL . '/modules/gateways/pasargad/callback.php');
+    $WHMCS_URL . '/modules/gateways/callback/pasargad.php');
 
 # redirect to the received token-like URL (different from the API token)
 if (isset($purchase) && $purchase->resultCode == 0)
