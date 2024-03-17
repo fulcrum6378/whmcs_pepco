@@ -22,14 +22,15 @@ else
 
 # 3. send the purchase request and get a URL.
 $purchase = PepPurchase(
-    $token, $invoiceId . mt_rand(10, 100), $amount,
+    $token, $invoiceId . mt_rand(10, 100), $amount, // FIXME
     $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
     $GATEWAY['TerminalNumber']);
 
 # 4. redirect to the received token-like URL (different from the API token).
-if (isset($purchase) && $purchase->resultCode == 0)
+if (isset($purchase) && $purchase->resultCode == 0) {
+    $_SESSION['url_id'] = $purchase->data->urlId;
     redirect(PEP_BASE_URL . '/' . $purchase->data->urlId);
-else
+} else
     error($purchase, 'خطا در ارسال به بانک', $invoiceId);
 
 

@@ -31,8 +31,8 @@ if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
 checkCbTransID($transactionId); // void
 
 # 6. confirm the invoice.
-$confirmation = PepConfirm($extInvoiceId);
-echo json_encode($confirmation);
+$confirmation = PepConfirm($extInvoiceId, $_SESSION['url_id']);
+echo $_SESSION['url_id'] . ' -> ' . json_encode($confirmation);
 if (!isset($confirmation) || $confirmation->resultCode != 0) {
     logTransaction($GATEWAY["name"], array(
         'invoiceid' => $invoiceId,
@@ -69,10 +69,10 @@ addInvoicePayment($invoiceId, $transactionId, $confirmation->data->amount, 0, MO
 redirect(invoiceUrl($invoiceId));
 
 
-function PepConfirm(string $invoiceId) {
+function PepConfirm(string $invoiceId, string $urlId) {
     $data = array(
         'invoiceId' => $invoiceId,
-        'urlId' => '',//TODO https://stackoverflow.com/questions/4662110/how-to-get-the-previous-url-using-php
+        'urlId' => $urlId,
     );
     $curl = curl_init(PEP_BASE_URL . '/api/payment/confirm-transactions');
     curl_setopt($curl, CURLOPT_POST, 1);
