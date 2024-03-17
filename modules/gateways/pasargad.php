@@ -20,7 +20,7 @@ function pasargad_config(): array {
         ),
         'Password' => array(
             'FriendlyName' => 'رمز عبور',
-            'Type' => 'text',
+            'Type' => 'text',//password
             'Size' => '50',
         ),
         'IrrCurrency' => array(
@@ -44,3 +44,5 @@ function pasargad_link($params): string {
     </form>
 ';
 }
+
+# for more information: https://developers.whmcs.com/payment-gateways/third-party-gateway/

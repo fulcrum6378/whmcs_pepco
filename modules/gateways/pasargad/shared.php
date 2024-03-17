@@ -16,7 +16,7 @@ include "../../../includes/invoicefunctions.php";
 # shared variables
 $GATEWAY = getGatewayVariables(MODULE_NAME);
 if (!$GATEWAY['type']) die('Module Not Activated'); # checks gateway module is active before accepting callback.
-$WHMCS_URL = $CONFIG['SystemURL'];
+
 
 /** Signs data for a secure API call using the RSAProcessor class and returns the signing key. */
 function signData(array $data): string {
@@ -41,9 +41,13 @@ function redirect(string $url): void {
     exit();
 }
 
-/** Returns an HTML template page displaying the error messages. */
-function errorPage(string $title, string $paragraph, string $invoiceId): string {
+function invoiceUrl(int $invoiceId): string {
     global $CONFIG;
+    return $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId;
+}
+
+/** Returns an HTML template page displaying the error messages. */
+function errorPage(string $title, string $paragraph, ?int $invoiceId = null): string {
     return '<!DOCTYPE html> 
 <html lang="fa" dir="rtl">
 <head>
@@ -62,8 +66,7 @@ main {
     width: 60%;
     margin: 50px auto 0 auto;
     line-height: 25px;
-    padding-left: 12px;
-    padding-top: 8px;
+    padding: 12px;
 }
 </style>
 </head>
@@ -72,8 +75,7 @@ main {
 	<main>
 		<span style="color: #FF0000;"><b>' . $title . '</b></span><br>
 		<p' . $paragraph . '</p>
-		<a href="' . $CONFIG['SystemURL'] . '/viewinvoice.php?id=' . $invoiceId . '">بازگشت >></a>
-		<br><br>
+		' . (($invoiceId != null) ? '<a href="' . invoiceUrl($invoiceId) . '">بازگشت >></a>' : '') . '
 	</main>
 </body>
 </html>';

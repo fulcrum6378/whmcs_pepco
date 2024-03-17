@@ -2,34 +2,35 @@
 
 include "shared.php";
 
-# process the POST parameters
+# 1. process the POST parameters.
 if (empty($_POST['invoice_id']) || empty($_POST['amount']))
     error((object)['resultMsg' =>
-        'Parameters { ' .
+        'پارامتر های { ' .
         (empty($_POST['invoice_id']) ? 'invoice_id, ' : '') .
         (empty($_POST['amount']) ? 'amount, ' : '') .
-        ' } are missing.'
-    ], 'خطا در پارامتر های ورودی');
-$invoiceId = $_POST['invoice_id'];
+        ' } وارد نشدند.'
+    ], 'خطا در پارامتر های ورودی', $invoiceId);
+$invoiceId = intval($_POST['invoice_id']);
 $amount = intval($_POST['amount']);
 
-# get a token for interacting with API
-$tokenReq = PepGetToken();
+# 2. get a token for interacting with API.
+$tokenReq = PepGetToken($GATEWAY['Username'], $GATEWAY['Password']);
 if (isset($tokenReq) && $tokenReq->resultCode == 0)
     $token = $tokenReq->token;
 else
-    error($tokenReq, 'خطا در دریافت توکن');
+    error($tokenReq, 'خطا در دریافت توکن', $invoiceId);
 
-# send the purchase request and get a URL
+# 3. send the purchase request and get a URL.
 $purchase = PepPurchase(
     $token, $invoiceId . mt_rand(10, 100), $amount,
-    $WHMCS_URL . '/modules/gateways/callback/pasargad.php');
+    $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
+    $GATEWAY['TerminalNumber']);
 
-# redirect to the received token-like URL (different from the API token)
+# 4. redirect to the received token-like URL (different from the API token).
 if (isset($purchase) && $purchase->resultCode == 0)
     redirect(PEP_BASE_URL . '/' . $purchase->data->urlId);
 else
-    error($purchase, 'خطا در ارسال به بانک');
+    error($purchase, 'خطا در ارسال به بانک', $invoiceId);
 
 
 /**
@@ -43,11 +44,10 @@ else
  * -ContentType "application/json" `
  * -Body '{"username": "<USERNAME>", "password": "<PASSWORD>"}'
  */
-function PepGetToken() {
-    global $GATEWAY;
+function PepGetToken(string $username, string $password) {
     $data = array(
-        'username' => $GATEWAY['Username'],
-        'password' => $GATEWAY['Password'],
+        'username' => $username,
+        'password' => $password
     );
     $curl = curl_init(PEP_BASE_URL . '/token/getToken');
     curl_setopt($curl, CURLOPT_POST, 1);
@@ -69,8 +69,7 @@ function PepGetToken() {
  * because the POST request needs the token to be put in the headers not the body!
  * @see https://stackoverflow.com/questions/9516865/how-to-set-a-header-field-on-post-a-form/9516955#9516955
  */
-function PepPurchase(string $token, string $invoice, int $amount, string $callbackUrl) {
-    global $GATEWAY;
+function PepPurchase(string $token, string $invoice, int $amount, string $callbackUrl, string $terminalNumber) {
     $data = array(
         'amount' => $amount,
         'callbackApi' => $callbackUrl,
@@ -82,9 +81,9 @@ function PepPurchase(string $token, string $invoice, int $amount, string $callba
         'payerName' => '',
         'serviceCode' => 8,
         'serviceType' => 'PURCHASE',
-        'terminalNumber' => $GATEWAY['TerminalNumber'],
+        'terminalNumber' => $terminalNumber,
         'nationalCode' => '',
-        'pans' => '',
+        'pans' => ''
     );
     $curl = curl_init(PEP_BASE_URL . '/api/payment/purchase');
     curl_setopt($curl, CURLOPT_POST, 1);
@@ -101,8 +100,8 @@ function PepPurchase(string $token, string $invoice, int $amount, string $callba
     return $result;
 }
 
-function error(?object $req, string $title): void {
-    global $invoiceId;
+/** Prints an HTML page for a specific error. */
+function error(?object $req, string $title, ?int $invoiceId): void {
     echo errorPage($title, ' dir="ltr">' . ($req->resultMsg ?? 'خطای نامشخص'), $invoiceId);
     exit();
 }
