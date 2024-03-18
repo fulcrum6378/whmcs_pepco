@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUndefinedFunctionInspection, PhpUndefinedVariableInspection */
 
 include "../pasargad/shared.php";
 
@@ -31,8 +31,11 @@ if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
 checkCbTransID($transactionId); // void
 
 # 6. confirm the invoice.
-$confirmation = PepConfirm($extInvoiceId, $_SESSION['url_id']);
-echo $_SESSION['url_id'] . ' -> ' . json_encode($confirmation);
+$confirmation = PepConfirm(
+    $extInvoiceId,
+    $_SESSION['pep_url_id'],
+    $_SESSION['pep_token']
+);
 if (!isset($confirmation) || $confirmation->resultCode != 0) {
     logTransaction($GATEWAY["name"], array(
         'invoiceid' => $invoiceId,
@@ -69,16 +72,21 @@ addInvoicePayment($invoiceId, $transactionId, $confirmation->data->amount, 0, MO
 redirect(invoiceUrl($invoiceId));
 
 
-function PepConfirm(string $invoiceId, string $urlId) {
+function PepConfirm(string $invoiceId, string $urlId, string $token) {
     $data = array(
-        'invoiceId' => $invoiceId,
+        'invoice' => $invoiceId,
         'urlId' => $urlId,
     );
     $curl = curl_init(PEP_BASE_URL . '/api/payment/confirm-transactions');
     curl_setopt($curl, CURLOPT_POST, 1);
     curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Sign: ' . signData($data),
+            'Authorization: Bearer ' . $token,
+        )
+    );
     $result = json_decode(curl_exec($curl));
     curl_close($curl);
     return $result;

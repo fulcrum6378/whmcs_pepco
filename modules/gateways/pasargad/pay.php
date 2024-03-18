@@ -3,32 +3,35 @@
 include "shared.php";
 
 # 1. process the POST parameters.
-if (empty($_POST['invoice_id']) || empty($_POST['amount']))
-    error((object)['resultMsg' =>
-        'پارامتر های { ' .
-        (empty($_POST['invoice_id']) ? 'invoice_id, ' : '') .
-        (empty($_POST['amount']) ? 'amount, ' : '') .
-        ' } وارد نشدند.'
-    ], 'خطا در پارامتر های ورودی', $invoiceId);
+if (empty($_POST['invoice_id']) || empty($_POST['amount']) ||
+    empty(intval($_POST['invoice_id'])) || empty(intval($_POST['amount']))
+) error((object)['resultMsg' =>
+    'پارامتر های { ' .
+    (empty($_POST['invoice_id']) ? 'invoice_id, ' : '') .
+    (empty($_POST['amount']) ? 'amount, ' : '') .
+    ' } وارد نشدند.'
+], 'خطا در پارامتر های ورودی', $invoiceId);
 $invoiceId = intval($_POST['invoice_id']);
-$amount = intval($_POST['amount']);
 
 # 2. get a token for interacting with API.
 $tokenReq = PepGetToken($GATEWAY['Username'], $GATEWAY['Password']);
 if (isset($tokenReq) && $tokenReq->resultCode == 0)
-    $token = $tokenReq->token;
+    $_SESSION['pep_token'] = $tokenReq->token;
 else
     error($tokenReq, 'خطا در دریافت توکن', $invoiceId);
 
 # 3. send the purchase request and get a URL.
 $purchase = PepPurchase(
-    $token, $invoiceId . mt_rand(10, 100), $amount, // FIXME
+    $invoiceId . mt_rand(10, 100),//FIXME
+    intval($_POST['amount']),
     $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
-    $GATEWAY['TerminalNumber']);
+    $GATEWAY['TerminalNumber'],
+    $_SESSION['pep_token']
+);
 
 # 4. redirect to the received token-like URL (different from the API token).
 if (isset($purchase) && $purchase->resultCode == 0) {
-    $_SESSION['url_id'] = $purchase->data->urlId;
+    $_SESSION['pep_url_id'] = $purchase->data->urlId;
     redirect(PEP_BASE_URL . '/' . $purchase->data->urlId);
 } else
     error($purchase, 'خطا در ارسال به بانک', $invoiceId);
@@ -56,7 +59,7 @@ function PepGetToken(string $username, string $password) {
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HTTPHEADER, array(
             'Content-Type: application/json',
-            'Sign: ' . signData($data)
+            'Sign: ' . signData($data),
         )
     );
     $result = json_decode(curl_exec($curl));
@@ -70,7 +73,7 @@ function PepGetToken(string $username, string $password) {
  * because the POST request needs the token to be put in the headers not the body!
  * @see https://stackoverflow.com/questions/9516865/how-to-set-a-header-field-on-post-a-form/9516955#9516955
  */
-function PepPurchase(string $token, string $invoice, int $amount, string $callbackUrl, string $terminalNumber) {
+function PepPurchase(string $invoice, int $amount, string $callbackUrl, string $terminalNumber, string $token) {
     $data = array(
         'amount' => $amount,
         'callbackApi' => $callbackUrl,
