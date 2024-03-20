@@ -8,10 +8,11 @@ const PEP_BASE_URL = 'https://pep.shaparak.ir/dorsa1';
 if (file_exists('../../../init.php'))
     require '../../../init.php';
 else
-    require "../../../dbconnect.php";
-include "../../../includes/functions.php";
-include "../../../includes/gatewayfunctions.php";
-include "../../../includes/invoicefunctions.php";
+    require '../../../dbconnect.php';
+include '../../../includes/functions.php';
+include '../../../includes/gatewayfunctions.php';
+include '../../../includes/invoicefunctions.php';
+require 'PepApi.php';
 
 # shared variables
 $GATEWAY = getGatewayVariables(MODULE_NAME);
@@ -20,7 +21,7 @@ if (!$GATEWAY['type']) die('Module Not Activated'); # checks gateway module is a
 
 /** Signs data for a secure API call using the RSAProcessor class and returns the signing key. */
 function signData(array $data): string {
-    require_once(dirname(__FILE__) . '/RSA.class.php');
+    require_once(dirname(__FILE__) . '/RSA.php');
     $processor = new RSAProcessor(
         dirname(__FILE__) . '/certificate.xml',
         RSAKeyType::XMLFile

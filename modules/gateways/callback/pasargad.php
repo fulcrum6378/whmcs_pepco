@@ -20,8 +20,8 @@ if (empty($status) || empty($extInvoiceId) || empty($transactionId) || empty($tr
     exit();
 }
 
-# 3. check if invoice ID is valid, or DIE!
-$invoiceId = checkCbInvoiceID(intval(substr($extInvoiceId, 0, -2)), $GATEWAY['name']);
+# 3. check if invoice ID is valid, or DIE! (substr(, 0, -2))
+$invoiceId = checkCbInvoiceID(intval($extInvoiceId), $GATEWAY['name']);
 
 # 4. if transaction was unsuccessful, redirect to the page of the invoice.
 if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
@@ -31,7 +31,7 @@ if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
 checkCbTransID($transactionId); // void
 
 # 6. confirm the invoice.
-$confirmation = PepConfirm(
+$confirmation = PepApi::confirmTransaction(
     $extInvoiceId,
     $_SESSION['pep_url_id'],
     $_SESSION['pep_token']
@@ -70,26 +70,5 @@ addInvoicePayment($invoiceId, $transactionId, $confirmation->data->amount, 0, MO
 
 # 9. redirect to the page of the invoice.
 redirect(invoiceUrl($invoiceId));
-
-
-function PepConfirm(string $invoiceId, string $urlId, string $token) {
-    $data = array(
-        'invoice' => $invoiceId,
-        'urlId' => $urlId,
-    );
-    $curl = curl_init(PEP_BASE_URL . '/api/payment/confirm-transactions');
-    curl_setopt($curl, CURLOPT_POST, 1);
-    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-            'Content-Type: application/json',
-            'Sign: ' . signData($data),
-            'Authorization: Bearer ' . $token,
-        )
-    );
-    $result = json_decode(curl_exec($curl));
-    curl_close($curl);
-    return $result;
-}
 
 # for more information: https://developers.whmcs.com/payment-gateways/callbacks/
