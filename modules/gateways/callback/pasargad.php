@@ -5,8 +5,8 @@ include "../pasargad/shared.php";
 # 1. process the GET parameters.
 $status = $_GET['status'] ?? '';
 $extInvoiceId = $_GET['invoiceId'] ?? ''; // two latter digits are to be discarded
-$transactionId = $_GET['referenceNumber'] ?? ''; // 'null' (on cancellation)
-$trackId = $_GET['trackId'] ?? ''; // e.g. 18
+$transactionId = $_GET['referenceNumber'] ?? ''; // 'null' on cancellation
+$trackId = $_GET['trackId'] ?? '';
 
 # 2. check if all the required GET parameters are passed.
 if (empty($status) || empty($extInvoiceId) || empty($transactionId) || empty($trackId)) {
