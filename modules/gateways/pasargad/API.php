@@ -1,6 +1,6 @@
 <?php
 
-class PepApi {
+class API {
     private static function post(
         string  $endPoint,
         array   $data,

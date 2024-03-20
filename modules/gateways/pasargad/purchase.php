@@ -14,15 +14,15 @@ if (empty($_POST['invoice_id']) || empty($_POST['amount']) ||
 $invoiceId = intval($_POST['invoice_id']);
 
 # 2. get a token for interacting with API.
-$tokenReq = PepApi::getToken($GATEWAY['Username'], $GATEWAY['Password']);
+$tokenReq = API::getToken($GATEWAY['Username'], $GATEWAY['Password']);
 if (isset($tokenReq) && $tokenReq->resultCode == 0)
     $_SESSION['pep_token'] = $tokenReq->token;
 else
     error($tokenReq, 'خطا در دریافت توکن', $invoiceId);
 
 # 3. send the purchase request and get a URL.
-$purchase = PepApi::purchase(
-    $invoiceId,
+$purchase = API::purchase(
+    $invoiceId, // the previous Farasu gateway sent invoice IDs identically!
     intval($_POST['amount']),
     $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
     $GATEWAY['TerminalNumber'],

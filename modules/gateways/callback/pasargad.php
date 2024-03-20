@@ -31,7 +31,7 @@ if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
 checkCbTransID($transactionId); // void
 
 # 6. confirm the invoice.
-$confirmation = PepApi::confirmTransaction(
+$confirmation = API::confirmTransaction(
     $extInvoiceId,
     $_SESSION['pep_url_id'],
     $_SESSION['pep_token']

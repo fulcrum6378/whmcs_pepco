@@ -1,4 +1,4 @@
-<?php /** @noinspection PhpIncludeInspection, PhpUndefinedVariableInspection, PhpUndefinedFunctionInspection */
+<?php /** @noinspection PhpIncludeInspection, PhpUndefinedFunctionInspection */
 
 # global constants
 const MODULE_NAME = 'pasargad';
@@ -12,7 +12,7 @@ else
 include '../../../includes/functions.php';
 include '../../../includes/gatewayfunctions.php';
 include '../../../includes/invoicefunctions.php';
-require 'PepApi.php';
+require 'API.php';
 
 # shared variables
 $GATEWAY = getGatewayVariables(MODULE_NAME);
