@@ -4,35 +4,36 @@ include "../pasargad/shared.php";
 
 # 1. process the GET parameters.
 $status = $_GET['status'] ?? '';
-$extInvoiceId = $_GET['invoiceId'] ?? ''; // two latter digits are to be discarded
+$invoiceId = $_GET['invoiceId'] ?? '';
 $transactionId = $_GET['referenceNumber'] ?? ''; // 'null' on cancellation
 $trackId = $_GET['trackId'] ?? '';
 
 # 2. check if all the required GET parameters are passed.
-if (empty($status) || empty($extInvoiceId) || empty($transactionId) || empty($trackId)) {
+if (empty($status) || empty($invoiceId) || empty($transactionId) || empty($trackId)) {
     echo errorPage('خطا در پارامتر های ورودی',
         '>' . 'پارامتر های { ' .
         (empty($status) ? 'status, ' : '') .
-        (empty($extInvoiceId) ? 'invoiceId, ' : '') .
+        (empty($invoiceId) ? 'invoiceId, ' : '') .
         (empty($transactionId) ? 'referenceNumber, ' : '') .
         (empty($trackId) ? 'trackId, ' : '') .
         ' } وارد نشدند.');
     exit();
 }
 
-# 3. check if invoice ID is valid, or DIE! (substr(, 0, -2))
-$invoiceId = checkCbInvoiceID(intval($extInvoiceId), $GATEWAY['name']);
+# 3. check if invoice ID is valid, or DIE!
+$invoiceId = checkCbInvoiceID(intval($invoiceId), $GATEWAY['name']);
 
 # 4. if transaction was unsuccessful, redirect to the page of the invoice.
 if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
     redirect(invoiceUrl($invoiceId));
 
 # 5. check if transaction ID isn't duplicate, or DIE!
-checkCbTransID($transactionId); // void
+if ($transactionId != 'null') // normally it shouldn't be null when $status == 'success'
+    checkCbTransID($transactionId); // void function
 
 # 6. confirm the invoice.
 $confirmation = API::confirmTransaction(
-    $extInvoiceId,
+    $invoiceId,
     $_SESSION['pep_url_id'],
     $_SESSION['pep_token']
 );

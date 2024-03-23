@@ -22,7 +22,7 @@ else
 
 # 3. send the purchase request and get a URL.
 $purchase = API::purchase(
-    $invoiceId, // the previous Farasu gateway sent invoice IDs identically!
+    $invoiceId,
     intval($_POST['amount']),
     $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
     $GATEWAY['TerminalNumber'],
