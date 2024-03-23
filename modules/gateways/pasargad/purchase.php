@@ -20,14 +20,18 @@ if (isset($tokenReq) && $tokenReq->resultCode == 0)
 else
     error($tokenReq, 'خطا در دریافت توکن', $invoiceId);
 
-# 3. send the purchase request and get a URL.
-$purchase = API::purchase(
-    $invoiceId,
-    intval($_POST['amount']),
-    $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
-    $GATEWAY['TerminalNumber'],
-    $_SESSION['pep_token']
-);
+# 3. send the purchase request and get a URL. (alter the invoice ID if it was reported as duplicate!)
+for ($rep = 0; $rep < 10; $rep++) {
+    $purchase = API::purchase(
+        $invoiceId . (($rep != 0) ? mt_rand(1000, 10000) : ''),
+        intval($_POST['amount']),
+        $CONFIG['SystemURL'] . '/modules/gateways/callback/pasargad.php',
+        $GATEWAY['TerminalNumber'],
+        $_SESSION['pep_token']
+    );
+    $_SESSION['pep_invoice_altered'] = $rep != 0;
+    if ($purchase->resultCode != 13094) break;
+}
 
 # 4. redirect to the received token-like URL (different from the API token).
 if (isset($purchase) && $purchase->resultCode == 0) {

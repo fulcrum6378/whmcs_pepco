@@ -4,16 +4,16 @@ include "../pasargad/shared.php";
 
 # 1. process the GET parameters.
 $status = $_GET['status'] ?? '';
-$invoiceId = $_GET['invoiceId'] ?? '';
+$extInvoiceId = $_GET['invoiceId'] ?? '';
 $transactionId = $_GET['referenceNumber'] ?? ''; // 'null' on cancellation
 $trackId = $_GET['trackId'] ?? '';
 
 # 2. check if all the required GET parameters are passed.
-if (empty($status) || empty($invoiceId) || empty($transactionId) || empty($trackId)) {
+if (empty($status) || empty($extInvoiceId) || empty($transactionId) || empty($trackId)) {
     echo errorPage('خطا در پارامتر های ورودی',
         '>' . 'پارامتر های { ' .
         (empty($status) ? 'status, ' : '') .
-        (empty($invoiceId) ? 'invoiceId, ' : '') .
+        (empty($extInvoiceId) ? 'invoiceId, ' : '') .
         (empty($transactionId) ? 'referenceNumber, ' : '') .
         (empty($trackId) ? 'trackId, ' : '') .
         ' } وارد نشدند.');
@@ -21,7 +21,9 @@ if (empty($status) || empty($invoiceId) || empty($transactionId) || empty($track
 }
 
 # 3. check if invoice ID is valid, or DIE!
-$invoiceId = checkCbInvoiceID(intval($invoiceId), $GATEWAY['name']);
+$invoiceId = checkCbInvoiceID(
+    intval(($_SESSION['pep_invoice_altered'] === true) ? substr($invoiceId, 0, -4) : $extInvoiceId),
+    $GATEWAY['name']);
 
 # 4. if transaction was unsuccessful, redirect to the page of the invoice.
 if ($status != 'success') // 'cancel' | 'failed' | 'unknown'
@@ -33,7 +35,7 @@ if ($transactionId != 'null') // normally it shouldn't be null when $status == '
 
 # 6. confirm the invoice.
 $confirmation = API::confirmTransaction(
-    $invoiceId,
+    $extInvoiceId,
     $_SESSION['pep_url_id'],
     $_SESSION['pep_token']
 );
@@ -60,10 +62,11 @@ if (!isset($confirmation) || $confirmation->resultCode != 0) {
 logTransaction($GATEWAY["name"], array(
     'invoiceid' => $invoiceId,
     'order_id' => $invoiceId,
+    'external_invoiceid' => $extInvoiceId,
     'amount' => $confirmation->data->amount,
     'tran_id' => $transactionId,
     'track_id' => intval($trackId),
-    'status' => 'paid'
+    'status' => 'paid',
 ), "موفق");
 
 # 8. apply the payment to the invoice.
