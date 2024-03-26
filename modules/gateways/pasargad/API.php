@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUnused */
 
 class API {
     private static function post(
@@ -71,6 +71,91 @@ class API {
         ), $token);
     }
 
+    /** Experimental; not tested yet. */
+    static function purchaseWithPaymentCode(
+        string $invoice,
+        int    $amount,
+        string $callbackUrl,
+        string $terminalNumber,
+        string $paymentCode,
+        string $token
+    ) {
+        return self::post('/api/payment/purchase', array(
+            'amount' => $amount,
+            'callbackApi' => $callbackUrl,
+            'description' => '',
+            'invoice' => $invoice,
+            'invoiceDate' => date('Y-m-d'),
+            'mobileNumber' => '',
+            'payerMail' => '',
+            'payerName' => '',
+            'paymentCode' => $paymentCode,
+            'serviceCode' => 8,
+            'serviceType' => 'PURCHASE',
+            'terminalNumber' => $terminalNumber,
+            'pans' => ''
+        ), $token);
+    }
+
+    /** Experimental; not tested yet. */
+    static function purchaseMultiAcc(
+        string $invoice,
+        int    $amount,
+        string $callbackUrl,
+        array  $sharedValue,
+        array  $sheba,
+        string $terminalNumber,
+        string $token
+    ) {
+        return self::post('/api/payment/multiacc/purchase', array(
+            'amount' => $amount,
+            'callbackApi' => $callbackUrl,
+            'description' => '',
+            'invoice' => $invoice,
+            'invoiceDate' => date('Y-m-d'),
+            'mobileNumber' => '',
+            'payerMail' => '',
+            'payerName' => '',
+            'serviceCode' => 9,
+            'serviceType' => 'MULTIACCPURCHASE',
+            'sharedValue' => $sharedValue,
+            'sheba' => $sheba,
+            'terminalNumber' => $terminalNumber,
+            'pans' => ''
+        ), $token);
+    }
+
+    /** Experimental; not tested yet. */
+    static function preTransaction(
+        string $invoice,
+        int    $amount,
+        string $callbackUrl,
+        string $productCode,
+        string $terminalNumber,
+        string $serviceCode,
+        string $serviceType,
+        string $billId,
+        string $paymentId,
+        string $token
+    ) {
+        return self::post('/api/payment/pre-transaction', array(
+            'amount' => $amount,
+            'callbackApi' => $callbackUrl,
+            'description' => '',
+            'invoice' => $invoice,
+            'payerMail' => '',
+            'payerName' => '',
+            'productCode' => $productCode,
+            'mobileNumber' => '',
+            'terminalNumber' => $terminalNumber,
+            'serviceCode' => $serviceCode,
+            'serviceType' => $serviceType,
+            'billId' => $billId,
+            'paymentId' => $paymentId,
+            'pans' => ''
+        ), $token);
+    }
+
     static function confirmTransaction(
         string $invoiceId,
         string $urlId,
@@ -79,6 +164,55 @@ class API {
         return self::post('/api/payment/confirm-transactions', array(
             'invoice' => $invoiceId,
             'urlId' => $urlId,
+        ), $token);
+    }
+
+    /** Experimental; not tested yet. */
+    static function verifyTransaction(
+        bool   $returnMoreDetails,
+        string $invoiceId,
+        string $urlId,
+        string $token
+    ) {
+        return self::post(
+            $returnMoreDetails ? '/api/payment/verify-payment' : '/api/payment/verify-transactions'
+            , array(
+            'invoice' => $invoiceId,
+            'urlId' => $urlId,
+        ), $token);
+    }
+
+    /** Experimental; not tested yet. */
+    static function reverseTransaction(
+        string $invoiceId,
+        string $urlId,
+        string $token
+    ) {
+        return self::post('/api/payment/reverse-transactions', array(
+            'invoice' => $invoiceId,
+            'urlId' => $urlId,
+        ), $token);
+    }
+
+    /** Experimental; not tested yet. */
+    static function paymentInquiryV1(
+        string $invoiceId,
+        string $token
+    ) {
+        return self::post('/api/payment/payment-inquiry', array(
+            'invoiceId' => $invoiceId,
+        ), $token);
+    }
+
+    /** Experimental; not tested yet. */
+    static function paymentInquiryV2(
+        string $invoiceId,
+        string $terminalNumber,
+        string $token
+    ) {
+        return self::post('/api/v2/payment/payment-inquiry', array(
+            'invoiceId' => $invoiceId,
+            'terminalNumber' => $terminalNumber,
         ), $token);
     }
 }
