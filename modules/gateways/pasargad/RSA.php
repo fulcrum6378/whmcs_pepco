@@ -121,9 +121,9 @@ class RSA {
 }
 
 class RSAProcessor {
-    private ?string $public_key;
-    private ?string $private_key;
-    private ?string $modulus;
+    private /*string*/ $public_key;
+    private /*?string*/ $private_key;
+    private /*?string*/ $modulus;
     private $key_length;
 
     public function __construct(string $xmlRsaKey, ?int $type = null) {
