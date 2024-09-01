@@ -9,12 +9,12 @@ $transactionId = $_GET['referenceNumber'] ?? ''; // 'null' on cancellation
 $trackId = $_GET['trackId'] ?? '';
 
 # 2. check if all the required GET parameters are passed.
-if (empty($status) || empty($extInvoiceId) || empty($transactionId) || empty($trackId)) {
+if (empty($status) || empty($extInvoiceId) || ($status == 'success' && empty($transactionId)) || empty($trackId)) {
     echo errorPage('خطا در پارامتر های ورودی',
         '>' . 'پارامتر های { ' .
         (empty($status) ? 'status, ' : '') .
         (empty($extInvoiceId) ? 'invoiceId, ' : '') .
-        (empty($transactionId) ? 'referenceNumber, ' : '') .
+        (($status == 'success' && empty($transactionId)) ? 'referenceNumber, ' : '') .
         (empty($trackId) ? 'trackId, ' : '') .
         ' } وارد نشدند.');
     exit();

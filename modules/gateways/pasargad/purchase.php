@@ -30,7 +30,7 @@ for ($rep = 0; $rep < 10; $rep++) {
         $_SESSION['pep_token']
     );
     $_SESSION['pep_invoice_altered'] = $rep != 0;
-    if ($purchase->resultCode != 13094) break;
+    if ($purchase->resultCode != 13003 && $purchase->resultCode != 13094) break;
 }
 
 # 4. redirect to the received token-like URL (different from the API token).
